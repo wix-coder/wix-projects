@@ -1,0 +1,19 @@
+import wixData from 'wix-data';
+$w.onReady(async function () {
+    await wixData.query("TheBeautyTribe").distinct("category").then(async (results) => {
+        let data = await results.items
+        $w('#selectionTags1').options = map(data)
+    })
+});
+export function selectionTags1_change(event) {
+    let filter = wixData.filter()
+    if ($w('#selectionTags1').value.length > 0) {
+        filter = filter.hasSome("category", $w('#selectionTags1').value)
+    }
+    $w("#dataset1").setFilter(filter)
+}
+export function map(mapping) {
+    return mapping.map((results) => {
+        return { label: results, value: results }
+    })
+}
