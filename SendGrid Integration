@@ -1,0 +1,43 @@
+Front-end
+import { sendEmail } from 'backend/sendGrid.jsw'
+$w.onReady(function () {});
+export async function send_click(event) {
+    let name = $w("#name").value;
+    let email = $w("#email").value;
+    let some = await sendEmail(name, email);
+    if (some == "success") {
+        $w("#send").label = "Email sent";
+    }
+}
+Back-end
+import sgMail from "@sendgrid/mail";
+export async function sendEmail(name,email) {
+    let key = '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'
+    sgMail.setApiKey(key);
+    const msg = {
+        "personalizations": [{
+            "to": [{
+                "email":"websitedeveloperman@gmail.com",
+            }],
+            "dynamic_template_data": {
+            'name':name,
+            'email':email
+            }
+        }],
+        "from": {
+            "email": "wixvelodeveloper@gmail.com",
+            "name": "WixVeloDeveloper"
+        },
+        "reply_to": {
+            "email": 'wixvelodeveloper@gmail.com',
+           "name": "Sarfraz Ahmad"
+        },
+        "template_id": "d-b3f044148a8d44abb11794cefe074cfe"
+    };
+    try {
+        await sgMail.send(msg);
+        return "success";
+    } catch (error) {
+        return [{ statusCode: error.code, message: error.message }];
+    }
+}
