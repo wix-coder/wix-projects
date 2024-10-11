@@ -1,0 +1,32 @@
+front-end 
+import wixLocation from 'wix-location';
+import wixWindow from 'wix-window';
+import {
+ fetch
+}
+from 'wix-fetch';
+let ipaddress;
+$w.onReady(function () {
+ fetch("https://extreme-ip-lookup.com/json/?key=eLPOG7cWdOQbYqFebmBE", {"method": "get"})
+ .then((httpResponse) => {
+ if (httpResponse.ok) {
+ return httpResponse.json();
+ }
+ })
+ .then((json) => {
+ ipaddress = json.query;
+ fetch(`https://ipapi.co/${ipaddress}/json/`, {"method": "get"})
+ .then((httpResponse) => {
+ if (httpResponse.ok) {
+ return httpResponse.json();
+ }
+ })
+ .then((noora) => {
+ ipaddress = json.query;
+  //$w("#text77").text=json.city
+ console.log(json);
+  $w("#text1").text=noora.region
+ return ipaddress;
+ });
+ });
+});
