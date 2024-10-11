@@ -1,0 +1,297 @@
+import wixData from 'wix-data';
+import wixLocation from 'wix-location';
+let product, productNAme;
+let id;
+let Image, video;
+//let verified=false;
+$w.onReady(async function () {
+    $w("#fiveStar").rating = 5
+    $w("#fourStar").rating = 4
+    $w("#threeStar").rating = 3
+    $w("#twoStar").rating = 2
+    $w("#oneStar").rating = 1
+    $w("#average").rating = 0;
+    $w("#check").rating = 0;
+    await SpecificReviews()
+    wixLocation.onChange(async () => {
+        await SpecificReviews()
+    });
+});
+export function button6_click(event) {
+    $w("#box2").expand()
+    $w("#button6").collapse()
+    $w("#cancel").expand()
+}
+export function button7_click(event) {
+    let date = new Date();
+    let name = $w("#name").value;
+    let email = $w("#email").value;
+    let rating = $w("#rating").value;
+    let title = $w("#title").value;
+    let review = $w("#review").value;
+    let something = name.charAt(0);
+    let toInsert = {
+        "name": name,
+        "email": email,
+        "rating": rating,
+        "reviewTitle": title,
+        "review": review,
+        "Id": id,
+        "image": Image,
+        "productName": productNAme,
+        "date": date,
+        "firstC": something
+    }
+    wixData.insert("CustomerReviews", toInsert).then(async () => {
+        $w("#success").text = "Your review was submitted successfully"
+        $w("#success").expand()
+        $w("#dataset2").refresh()
+        Query()
+        await testing();
+        setTimeout(function () {
+            $w("#box2").collapse()
+            $w("#cancel").collapse()
+            $w("#button6").expand()
+        }, 3000);
+    })
+}
+export function uploadButton1_change(event) {
+    $w("#success").text = "Uploading Image";
+    $w("#success").expand()
+    $w("#button7").disable();
+    $w("#uploadButton1").startUpload().then((result) => {
+        Image = result.url;
+        $w("#success").collapse();
+        $w("#button7").enable()
+    })
+}
+export function repeater1_itemReady($item, itemData) {
+    if (itemData.image) {
+        $item("#prof").show();
+        $item("#group14").hide();
+    }
+    if (!itemData.image) {
+        $item("#prof").hide();
+        $item("#group14").show();
+    }
+    if (itemData.verified == true) {
+        $item("#verified").show();
+    }
+    // let name1 = itemData.name;
+    // let icon = name1.charAt(0);
+    // $item('#text39').text = icon;
+    // $item('#text39').show();
+    if (itemData.review.length > 240) {
+        let review = itemData.review;
+        let string = review.substring(0, 240);
+        $item("#text35").show();
+        $item("#text36").text = string + "...";
+    }
+    if (itemData.review.length < 240) {
+        let review = itemData.review;
+        let string = review.substring(0, 240);
+        $item("#text36").text = string;
+    }
+    var date2 = new Date();
+    var date1 = itemData.date;
+    var Difference_In_Time = date2.getTime() - date1.getTime();
+    var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
+    let diff = Difference_In_Days.toFixed(0);
+    if (Difference_In_Days < 1) {
+        $item("#date").text = "Submitted Today";
+        $item("#date").show();
+    } else if (Difference_In_Days < 2 && Difference_In_Days >= 1) {
+        $item("#date").text = "Submitted" + " " + diff + " " + "day ago";
+        $item("#date").show();
+    } else {
+        $item("#date").text = "Submitted" + " " + diff + " " + "days ago";
+        $item("#date").show();
+    }
+}
+export async function Query() {
+    console.log('id', id)
+    let data = await wixData.query("CustomerReviews").eq('Id', id).eq("verified", true).find();
+    console.log('query:', data)
+    if (data.items.length > 0) {
+        let count = data.items.length;
+        let ouritem = data.items;
+        let avrage;
+        let total = 0;
+        for (let i = 0; i < data.items.length; i++) {
+            total += ouritem[i].rating;
+        }
+        avrage = 1.0 * total / count;
+        console.log(avrage)
+        $w('#average').rating = avrage;
+        $w("#check").rating = avrage;
+        $w('#text27').text = 'Based on ' + count + ' reviews';
+        $w("#test").text = "(" + count + ")"
+    } else {
+        $w("#average").rating = 0;
+        $w("#check").rating = 0;
+    }
+}
+async function testing() {
+    let data = await wixData.query("CustomerReviews").eq("Id", id).eq("verified", true).find();
+    if (data.items.length > 0) {
+        let count = data.items.length;
+        let fivestar = [];
+        for (let i in data.items) {
+            if (data.items[i].rating === 5) {
+                fivestar.push({ rating: data.items[i].rating })
+            }
+        }
+        console.log(fivestar)
+        let total = fivestar.length;
+        let percentage = total / count * 100
+        console.log("5 star percentage", percentage, "total", total)
+        $w("#progressBar1").value = percentage
+        var result1 = (percentage - Math.floor(percentage)) !== 0;
+        if (result1) {
+            let aaa = percentage.toFixed(0)
+            $w("#text28").text = aaa + "%"
+        }
+        $w("#1").text = "(" + total + ')';
+        if (!result1) {
+            $w("#text28").text = percentage + "%"
+        }
+        let fourstar = [];
+        for (let i in data.items) {
+            if (data.items[i].rating === 4) {
+                fourstar.push({ rating: data.items[i].rating })
+            }
+        }
+        let total1 = fourstar.length;
+        let percentage1 = total1 / count * 100
+        $w("#progressBar2").value = percentage1
+        var result2 = (percentage1 - Math.floor(percentage1)) !== 0;
+        if (result2) {
+            let bbb = percentage1.toFixed(0)
+            $w("#text29").text = bbb + "%"
+        }
+        if (!result2) {
+            $w("#text29").text = percentage1 + "%"
+        }
+        $w("#2").text = "(" + total1 + ')';
+        let threestar = [];
+        for (let i in data.items) {
+            if (data.items[i].rating === 3) {
+                threestar.push({ rating: data.items[i].rating })
+            }
+        }
+        let total2 = threestar.length;
+        let percentage2 = total2 / count * 100
+        $w("#progressBar3").value = percentage2
+        var result3 = (percentage2 - Math.floor(percentage2)) !== 0;
+        if (result3) {
+            let ccc = percentage2.toFixed(0)
+            $w("#text30").text = ccc + "%"
+        }
+        if (!result3) {
+            $w("#text30").text = percentage2 + "%"
+        }
+        $w("#3").text = "(" + total2 + ')';
+        let twostar = [];
+        for (let i in data.items) {
+            if (data.items[i].rating === 2) {
+                twostar.push({ rating: data.items[i].rating })
+            }
+        }
+        let total3 = twostar.length;
+        let percentage3 = total3 / count * 100
+        $w("#progressBar4").value = percentage3
+        var result4 = (percentage3 - Math.floor(percentage3)) !== 0;
+        if (result4) {
+            let ddd = percentage3.toFixed(0)
+            $w("#text34").text = ddd + "%"
+        }
+        if (!result4) {
+            $w("#text34").text = percentage3 + "%"
+        }
+        $w("#4").text = "(" + total3 + ')';
+        let onestar = [];
+        for (let i in data.items) {
+            if (data.items[i].rating === 1) {
+                onestar.push({ rating: data.items[i].rating })
+            }
+        }
+        let total4 = onestar.length;
+        let percentage4 = total4 / count * 100
+        var result = (percentage4 - Math.floor(percentage4)) !== 0;
+        if (result) {
+            let eee = percentage4.toFixed(0)
+            $w("#text32").text = eee + "%"
+        }
+        if (!result) {
+            $w("#text32").text = percentage4 + "%"
+        }
+        $w("#progressBar5").value = percentage4
+        $w("#5").text = "(" + total4 + ')';
+    }
+}
+export async function SpecificReviews() {
+    $w("#fiveStar").rating = 5
+    $w("#fourStar").rating = 4
+    $w("#threeStar").rating = 3
+    $w("#twoStar").rating = 2
+    $w("#oneStar").rating = 1
+    product = await $w('#productPage1').getProduct();
+    id = await product._id;
+    productNAme = product.name;
+    $w('#dataset2').setFilter(wixData.filter().eq("Id", id).eq("verified", true));
+    Query()
+    await testing();
+}
+export async function text35_click(event, $w) {
+    let data = await $w("#dataset2").getCurrentItem()
+    $w("#text36").text = data.review;
+    $w("#text35").hide();
+}
+export function cancel_click(event) {
+    $w("#button6").expand()
+    $w("#cancel").collapse()
+    $w("#box2").collapse()
+}
+export function check_click(event) {
+    $w("#text19").scrollTo();
+}
+export function filters() {
+    let date = $w("#dte").value;
+    let rating = $w("#rate").value;
+    let filter = wixData.filter();
+    let filter1 = wixData.sort();
+    if (date !== '') {
+        if (date == "New to Old") {
+            filter1 = filter1.descending("date");
+        }
+        if (date == "Old to New") {
+            filter1 = filter1.ascending("date");
+        }
+    }
+    if (rating !== '') {
+        if (rating == "Highest Rating") {
+            filter1 = filter1.descending("rating");
+        }
+        if (rating == "Lowest Rating") {
+            filter1 = filter1.ascending("rating");
+        }
+    }
+    $w("#dataset2").setSort(filter1).then(() => {
+        $w("#dataset2").setFilter(wixData.filter().eq("Id", id))
+    })
+}
+export function button8_click(event) {
+    $w("#dte").value == null;
+    $w("#rate").value == null;
+    $w("#dte").value == '';
+    $w("#rate").value == '';
+    $w("#dataset2").setSort(wixData.sort()).then(() => {
+        $w("#dataset2").setFilter(wixData.filter().eq("Id", id).eq("verified", true));
+    })
+}
+export function rate_change(event) {
+    filters();
+}
+export function dte_change(event) {
+    filters();
+}
