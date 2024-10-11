@@ -1,0 +1,30 @@
+let filter = wixData.filter()
+$w.onReady(async () => {
+    $w('#search').onClick(()=>{
+           console.log('search')
+  if ($w("#fn").value.length > 0) {
+            filter = filter.contains("firstName", $w("#fn").value)
+            $w("#dataset4").setFilter(filter)
+        }
+        if ($w("#ln").value.length > 0) {
+            filter = filter.contains("lastname", $w("#ln").value)
+            $w("#dataset4").setFilter(filter)
+        }
+        if ($w("#ea").value.length > 0) {
+            filter = filter.contains("Email", $w("#ea").value)
+            $w("#dataset4").setFilter(filter)
+        }
+        if ($w("#on").value.length > 0) {
+            filter = filter.contains("Institution", $w("#on").value)
+            $w("#dataset4").setFilter(filter)
+        }
+    })
+  $w('#reset').onClick(()=>{
+        $w('#fn').value = null
+        $w('#ln').value = null
+        $w('#ea').value = null
+        $w('#on').value = null
+        $w('#dataset4').setFilter(wixData.filter())
+        console.log('reset')
+  })
+})
