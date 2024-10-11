@@ -1,0 +1,18 @@
+import wixData from 'wix-data';
+$w.onReady(async function () {
+});
+export function uploadButton1_change(event) {
+let images=[]; 
+$w("#uploadButton1").uploadFiles()
+.then( (uploadedFiles) => {
+uploadedFiles.forEach(uploadedFile => {
+images.push({slug:uploadedFile.fileName,src:uploadedFile.fileUrl,title:uploadedFile.originalFileName,type:'image'})    
+})
+let toInsert={
+"media":images
+} 
+wixData.insert("test",toInsert).then(()=>{
+console.log("done") 
+}) 
+}) 
+}
