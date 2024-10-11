@@ -1,0 +1,72 @@
+import wixLocation from 'wix-location';
+import wixData from 'wix-data';
+
+$w.onReady(() => {
+    wixData.query("Team")
+        .distinct("practiceAreas")
+        .then((results) => {
+            const tagOptions = results.items.map((item) => {
+                return { label: item, value: item };
+            });
+
+            $w("#selectionTags").options = tagOptions;
+
+            let query = wixLocation.query;
+            if (query.tags) {
+                let selectedTags = query.tags;
+
+                try {
+                    selectedTags = JSON.parse(selectedTags);
+                } catch (e) {
+                    console.error('Error parsing tags from query:', e);
+                    selectedTags = [];
+                }
+
+                $w("#selectionTags").value = selectedTags;
+                applyFilter(selectedTags);
+            }
+        })
+        .catch((err) => {
+            console.error("Error fetching practiceAreas:", err);
+        });
+
+    $w("#selectionTags").onChange(() => {
+        const selectedTags = $w("#selectionTags").value;
+        updateUrlWithTags(selectedTags);
+        applyFilter(selectedTags);
+    });
+});
+
+function applyFilter(filterValue) {
+    let filter = wixData.filter();
+
+    if (Array.isArray(filterValue) && filterValue.length === 0) {
+        $w("#dataset1").setFilter(wixData.filter())
+            .then(() => {
+                console.log("Filter cleared, showing all items.");
+            })
+            .catch((err) => {
+                console.error("Failed to clear filter", err);
+            });
+    } else {
+        filter = filter.hasSome("practiceAreas", filterValue);
+
+        $w("#dataset1").setFilter(filter)
+            .then(() => {
+                console.log("Filter applied successfully");
+            })
+            .catch((err) => {
+                console.error("Failed to apply filter", err);
+            });
+    }
+}
+
+function updateUrlWithTags(selectedTags) {
+    if (selectedTags.length > 0) {
+        const queryParams = { tags: JSON.stringify(selectedTags) };
+        wixLocation.queryParams.add(queryParams);
+    } else {
+        wixLocation.queryParams.remove(["tags"]);
+        console.log("URL returned to default state, tags removed");
+    }
+}
