@@ -1,0 +1,87 @@
+import wixData from 'wix-data';
+import wixLocation from 'wix-location';
+import wixUsers from 'wix-users';
+let userEmail
+$w.onReady(async function () {
+    // ...
+    let user = wixUsers.currentUser;
+    let userId = user.id;import wixData from 'wix-data';
+import wixLocation from 'wix-location';
+import wixUsers from 'wix-users';
+let userEmail
+    console.log(userId, "ffffffff")
+$w.onReady(async function () {
+    await wixData.query("MembersDatabase").eq("_owner", userId).find().then(async (results) => {
+    // ...
+        $w('#city').text = results.items[0].City
+        $w('#country').text = results.items[0].Country
+    let user = wixUsers.currentUser;
+        $w('#education').text = results.items[0].Education
+        $w('#email').text = results.items[0].Email
+    let userId = user.id;
+        $w('#fname').text = results.items[0].FirstName
+        $w('#image8').src = results.items[0].Image
+    console.log(userId, "ffffffff")
+        $w('#institution').text = results.items[0].Institution
+    await wixData.query("MembersDatabase").eq("_owner", userId).find().then(async (results) => {
+        $w('#iterested').text = results.items[0].Interested
+        $w('#lname').text = results.items[0].LastName
+        $w('#city').text = results.items[0].City
+        $w('#phone').text = results.items[0].Phone
+        $w('#country').text = results.items[0].Country
+        $w('#plainnumber').text = results.items[0].PlainNumber
+        $w('#education').text = results.items[0].Education
+        $w('#profession').text = results.items[0].ProfessionalSpecialty
+        $w('#email').text = results.items[0].Email
+        if (results.items[0].State !== "") {
+        $w('#fname').text = results.items[0].FirstName
+            $w('#state').expand()
+        $w('#image8').src = results.items[0].Image
+            $w('#text102').expand()
+        $w('#institution').text = results.items[0].Institution
+            $w('#state').text = results.items[0].State
+        $w('#iterested').text = results.items[0].Interested
+        } else {
+        $w('#lname').text = results.items[0].LastName
+            $w('#state').collapse()
+        $w('#phone').text = results.items[0].Phone
+            $w('#text102').collapse()
+        $w('#plainnumber').text = results.items[0].PlainNumber
+        }
+        $w('#profession').text = results.items[0].ProfessionalSpecialty
+        if(results.items[0].Interested==="Yes"){
+        if (results.items[0].State !== "") {
+            $w('#iterested').expand();
+            $w('#state').expand()
+            $w('#interestedShow').expand();
+            $w('#text102').expand()
+             $w('#iterested').text = results.items[0].Interested
+            $w('#state').text = results.items[0].State
+              $w('#notInterested').collapse();
+        } else {
+        }
+            $w('#state').collapse()
+        if(results.items[0].Interested==="No"){
+            $w('#text102').collapse()
+            $w('#iterested').collapse();
+        }
+            $w('#interestedShow').expand();
+        if(results.items[0].Interested==="Yes"){
+             $w('#notInterested').text = results.items[0].Interested
+            $w('#iterested').expand();
+            $w('#notInterested').expand();
+            $w('#interestedShow').expand();
+        }
+             $w('#iterested').text = results.items[0].Interested
+    })
+              $w('#notInterested').collapse();
+        }
+})
+        if(results.items[0].Interested==="No"){
+            $w('#iterested').collapse();
+            $w('#interestedShow').expand();
+             $w('#notInterested').text = results.items[0].Interested
+            $w('#notInterested').expand();
+        }
+    })
+})
