@@ -1,0 +1,31 @@
+export async function signUp_click(event) {
+    let email1 = $w('#email').value;
+    let data = await wixData.query('SignUp').eq('Email', email1).find();
+    console.log(data)
+    if (data.items.length > 0) {
+        $w('#error').show();
+    } else {
+        let fName = $w('#firstName').value;
+        let lName = $w('#lastName').value;
+        let email = $w('#email').value;
+        let password = $w('#password').value;
+        await wixUsers.register(email, password).then(async () => {
+            let toInsert = {
+                "First Name": fName,
+                "Last Name": lName,
+                "Email": email
+            }
+            await wixData.insert('SignUp', toInsert).then(() => {
+                wixUsers.login(email, password).then(() => {
+                    wixWindow.lightbox.close();
+                    wixLocation.to('/home')
+                })
+            })
+        })
+    }
+    //setTimeout function
+const myTimeout = setTimeout(hideError, 3000);
+}
+export function hideError() {
+    $w('#error').hide();
+}
