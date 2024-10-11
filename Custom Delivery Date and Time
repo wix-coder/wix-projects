@@ -1,0 +1,151 @@
+//event js
+import wixData from 'wix-data';
+export async function wixStores_onNewOrder(event) {
+let cartId = event.cartId;
+let items = (await wixData.query("Deliveries").eq("cartId",cartId).find()).items;
+if(items.length>0){
+let info = items[0];
+let lineItems = (await wixData.query('Stores/Orders').eq("cartId",cartId).find()).items[0].lineItems;
+info.orderNumber = event.number;
+info.buyerInfo = event.buyerInfo;
+info.fulfillmentStatus = event.fulfillmentStatus;
+info.billingInfo = event.billingInfo;
+info.total = event.total
+info.lineItems = lineItems
+console.log(lineItems,'lineItems')
+wixData.update("Deliveries",info);
+}}
+//Lightbox
+import wixWindow from 'wix-window';
+import wixData from 'wix-data';
+let cartId;
+$w.onReady(async function () {
+    let data = await wixWindow.lightbox.getContext();
+    setDisabledDates()
+    cartId = data.cartId;
+    let date = data.date;
+    let time = data.time;
+    $w("#date").value = date;
+    $w("#time").value = time;
+});
+export function dataToCart() {
+    let data = {
+        deliveryDate: $w("#date").value,
+        deliveryTime: $w("#time").value
+    }
+    wixWindow.lightbox.close(data);
+}
+export async function confirm_click(event) {
+    if($w("#date").value!=null && $w("#time").value!=''){
+    let getData = (await wixData.query("Deliveries").eq("cartId",cartId).find()).items;
+    if(getData.length>0){
+    let info = getData[0];
+    info.deliveryDate = $w("#date").value;
+    info.deliveryTime = $w("#time").value;
+    wixData.update('Deliveries',info).then(()=>{
+    dataToCart();
+    })}
+    else{
+    let datatoInsert = {
+    'cartId': cartId,
+    'deliveryDate': $w("#date").value,
+    'deliveryTime': $w("#time").value
+     }
+    wixData.insert('Deliveries', datatoInsert).then(async() => {
+    await  dataToCart()
+    })
+    }
+    }
+    else{
+    $w("#error").expand();
+    setTimeout(() => {
+     $w("#error").collapse();   
+    }, 2000);
+    }
+}
+export function date_change(event) {
+let today = new Date()
+let selected = $w("#date").value;
+let toDay = today.getDate();
+let toMonth = today.getMonth();
+let toYear = today.getFullYear();
+let toHours = today.getHours()
+let selectedDay = selected.getDate();
+let seletedMonth = selected.getMonth();
+let selectedYear = selected.getFullYear();
+if(toYear===selectedYear && toMonth===seletedMonth && toDay===selectedDay){
+$w("#today").expand();
+$w("#confirm").disable();
+setTimeout(() => {
+$w("#today").collapse()    
+}, 4000);    
+}
+else if(toYear===selectedYear && toMonth===seletedMonth && toDay+1===selectedDay && toHours>=12){
+$w("#confirm").disable();
+$w("#tomorrow").expand();
+setTimeout(() => {
+$w("#tomorrow").collapse()    
+}, 4000); 
+}
+else{
+$w("#confirm").enable();
+}}
+function setDisabledDates() {
+ wixData.query('deliveries-disableddates')
+ .find()
+ .then((results) => {
+ if (results.items.length > 0) {
+ let items = results.items;
+ let dates = [];
+ items.forEach(item => {
+ dates.push(item.date);
+ });
+                console.log(dates)
+ $w('#date').disabledDates = dates;
+ }
+ })
+ .catch((err) => {
+ console.error('getDisabledDates error', err);
+ });
+}
+// Cart Page
+import wixStores from 'wix-stores';
+import wixWindow from 'wix-window';
+import wixData from 'wix-data';
+import {local} from 'wix-storage'
+let cartId;
+let date,time;
+$w.onReady(async function () {
+await wixStores.getCurrentCart().then((result)=>{
+cartId = result._id;})
+let data = (await wixData.query("Deliveries").eq("cartId",cartId).find()).items;
+if(data.length>0){
+$w("#update").show();    
+date = data[0].deliveryDate;
+time = data[0].deliveryTime;
+$w('#deliveryDate').text=data[0].deliveryDate.toDateString();
+$w('#deliveryTime').text=data[0].deliveryTime;
+local.setItem("date",date.toDateString());
+local.setItem('time',time);
+}
+else{
+displayLightbox(cartId);
+}
+});
+function displayLightbox(cartId) {
+wixWindow.openLightbox('deliveryDate',{
+cartId:cartId,
+date:date,
+time:time 
+}).then(async(result) => {
+console.log(result,"results");
+if(result.deliveryDate){
+$w("#update").show();    
+$w('#deliveryDate').text=result.deliveryDate.toDateString();
+$w('#deliveryTime').text=result.deliveryTime;
+local.setItem("date",result.deliveryDate.toDateString());
+local.setItem('time',result.deliveryTime);
+}})}
+export function update_click(event) {
+displayLightbox(cartId);
+}
