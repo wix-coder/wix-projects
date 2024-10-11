@@ -1,0 +1,76 @@
+import wixData from 'wix-data';
+let insertion;
+let uid
+$w.onReady(async function () {
+    let unfilled='https://static.wixstatic.com/.../02b9f6...'
+let filled="https://static.wixstatic.com/.../02b9f6..."
+    $w('#filled').onClick(()=>{
+        $w('#image1').src="https://static.wixstatic.com/.../02b9f6..." 
+    })
+     $w('#unfilled').onClick(()=>{
+        $w('#image1').src="https://static.wixstatic.com/.../02b9f6..."
+    })
+    await callData();
+    await clearFilter();
+    $w('#submit').onClick(() => {
+        insertion = {
+            'Job Title': $w('#jobTitle').value,
+            'Salary': $w('#salary').value,
+            'Applicatioin Deadline': $w('#applicationDeadline').value,
+            'Benefits': $w('#benefits').value,
+            'Location': $w('#location').value,
+            'Requirments': $w('#requirments').value,
+            'Catagory': $w('#catagory').value,
+        }
+        if ($w('#submit').label === 'Update') {
+            insertion._id = uid;
+            wixData.update('Jobs', insertion).then(async () => {
+                $w('#repeater9').data = [];
+                await callData();
+            })
+        } else {
+            $w('#preloader').expand();
+            const myTimeout = setTimeout(preloader, 6000);
+            wixData.insert('Jobs', insertion).then(async () => {
+                await callData();
+            }).then(() => {
+                $w('#preloaderhide').expand()
+                const myTimeout = setTimeout(preloader1, 7000);
+            })
+        }
+    })
+});
+export async function callData(params) {
+    let fetch = (await wixData.query('Jobs').limit(1000).find()).items;
+    $w('#repeater9').data = fetch
+    console.log(fetch)
+}
+export async function deleted(id) {
+    wixData.remove('Jobs', id).then(async () => {
+        await callData();
+    })
+}
+export async function repeater9_itemReady($w, itemData, index) {
+    $w('#jobTitletext').text = `Job Title:${itemData['Job Title']}`
+    $w('#applicationDeadlinetext').text = `Applicatioin Deadline:${itemData['Applicatioin Deadline']}`
+    $w('#benefitstext').text = `Benefits:${itemData.Benefits}`
+    $w('#salarytext').text = `Salary:${itemData.Salary}`
+    $w('#categorytext').text = `Category:${itemData.Category}`
+    $w('#locationtext').text = `Location:${itemData.Location}`
+    $w('#requirmentstext').text = `Requirments:${itemData.Requirments}`
+    $w('#delete').onClick(() => {
+        deleted(itemData._id);
+    });
+    $w('#Update').onClick(() =>{
+        $w('#submit').label = 'Update',
+        $w('#jobTitle').value = itemData['Job Title'],
+        $w('#applicationDeadline').value = itemData['Applicatioin Deadline'],
+        $w('#benefits').value = itemData.Benefits,
+        $w('#category').value = itemData.Category,
+        $w('#location').value = itemData.Location,
+        $w('#requirments').value = itemData.Requirments,
+        $w('#salary').value = itemData.Salary,
+        uid=itemData._id
+        $w('#box3').scrollTo()
+    })
+}
