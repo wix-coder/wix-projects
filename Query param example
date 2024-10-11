@@ -1,0 +1,20 @@
+SetParam
+import wixLocation from 'wix-location';
+$w.onReady(function () {
+});
+export function next_click(event) {
+let name=$w('#input1').value
+let email=$w('#input2').value
+let about=$w('#input3').value
+wixLocation.to(`/1?name=${name}&&email=${email}&&about=${about}`)
+}
+GetParam Data
+import wixLocation from 'wix-location';
+$w.onReady(function () {
+let name=wixLocation.query.name
+let email=wixLocation.query.email
+let about=wixLocation.query.about
+$w('#name').text=name
+$w('#email').text=email
+$w('#about').text=about
+});
