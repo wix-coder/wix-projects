@@ -1,0 +1,191 @@
+import { fetch } from 'wix-fetch';
+let nAME,sALUTION,cOMPANY,mOBILE,eMAIL,sECTERS,mARKETING,cOUNTRY,tYPE,fIRST,lAST,rEFER;
+export async function sendEmail(fullName,salutation,company,mobile,email,sectors,marketing,country,type,firstName,lastName,reference) {
+nAME=fullName;
+sALUTION=salutation;
+cOMPANY=company;
+mOBILE=mobile;
+eMAIL=email;
+sECTERS=sectors;
+mARKETING=marketing;
+cOUNTRY=country;
+tYPE=type;
+fIRST=firstName,
+lAST=lastName;
+rEFER=reference;
+    const url = "https://api.sendinblue.com/v3/smtp/email";
+    const headers = {
+        "content-type": "application/json",
+        "accept": "application/json",
+        "api-key": "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"
+    };
+    const data2 = JSON.stringify({
+        sender: { name: 'Kuwait Building', email: "kuwaitbuildingshow@atexinternational.com" },
+        to: [{ email: "kuwaitbuildingshow@atexinternational.com", name: "Admin" }],
+        replyTo: { email: 'kuwaitbuildingshow@atexinternational.com', name: 'Admin' },
+        subject: 'Visitor Registration Form - Kuwait Building Show 2022', 
+        htmlContent:`<!DOCTYPE html>
+<html>
+<head>
+<style>
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 5px;
+  text-align: left;
+}
+</style>
+</head>
+<body>
+<h2>Book a Stand Form:</h2>
+<table style="width:100%">
+ <tr>
+    <th>SALUTATION:</th>
+    <td>${sALUTION}</td>
+  </tr>
+  <tr>
+  <tr>
+    <th>Full Name:</th>
+    <td>${nAME}</td>
+  </tr>
+  <tr>
+    <th>PHONE:</th>
+    <td>${mOBILE}</td>
+  </tr>
+  <tr>
+    </tr>
+  <tr>
+    <th>EMAIL:</th>
+    <td>${eMAIL}</td>
+  </tr>
+  <tr>
+    </tr>
+  <tr>
+    <th>COMPANY:</th>
+    <td>${cOMPANY}</td>
+  </tr>
+  <tr>
+    </tr>
+  <tr>
+    <th>COUNTRY:</th>
+    <td>${cOUNTRY}</td>
+  </tr>
+  <tr>
+    </tr>
+  <tr>
+    <th>SECTORS:</th>
+    <td>${sECTERS}</td>
+  </tr>
+  <tr>
+    <th>MARKETING:</th>
+    <td>${mARKETING}</td>
+  </tr>
+  </tr>
+    <th>REFERENCE:</th>
+    <td>${rEFER}</td>
+  </tr>
+</table>
+</body>
+</html>`,
+    });
+      const data1 = JSON.stringify({
+        sender: { name: 'Kuwait Building', email: "kuwaitbuildingshow@atexinternational.com" },
+        to: [{ email: eMAIL, name: nAME }],
+        replyTo: { email: 'kuwaitbuildingshow@atexinternational.com', name: 'Kuwait Building' },
+        subject: 'Thank you for registering your visit to Kuwait Building Show 2022!', 
+        //templateId: 499,
+        htmlContent:"<html><head></head><body><p>"+"Hello,"+nAME+"</p>Thank you for registering on Kuwait Building.</p></body></html>",
+    });
+     const request1 = {
+        "method": "POST",
+        "headers": headers,
+        "body": data2
+    };
+    const request = {
+        "method": "POST",
+        "headers": headers,
+        "body": data1
+    };
+   let data =  await fetch(url, request);
+   let data3 =  await fetch(url, request1).then(async()=>{
+   console.log("Emails sent");
+   await getContacts()
+   })
+}
+export function getContacts(){
+ const SibApiV3Sdk = require('sib-api-v3-sdk');
+let defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = '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';
+let apiInstance = new SibApiV3Sdk.ContactsApi();
+let opts = {
+  'limit': 50, 
+  'offset': 0, 
+};
+apiInstance.getContacts(opts).then(async function(data) {
+let some=[];
+for (let x in data.contacts) {
+  some.push(data.contacts[x].email);
+}
+//let email = "keepthestylee@gmail.com"
+console.log(some)
+let all = some.filter(item=> item===eMAIL)
+if(all==eMAIL){
+  await UpdateContact();
+}
+else{
+  await createContact();
+}
+}, function(error) {
+  console.error(error);
+});
+}
+export function UpdateContact(){
+const SibApiV3Sdk = require('sib-api-v3-sdk');
+let defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = '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';
+let apiInstance = new SibApiV3Sdk.ContactsApi();
+let identifier = eMAIL; 
+let updateContact = new SibApiV3Sdk.UpdateContact(); 
+updateContact.attributes = {'EMAIL':eMAIL,'FULLNAME':nAME,'SALUTATION':sALUTION,'COMPANY':cOMPANY,'PHONE':mOBILE,'SECTORS':sECTERS,'MARKETING':mARKETING,'COUNTRY':cOUNTRY,'TYPE':tYPE,"FIRSTNAME":fIRST,"LASTNAME":lAST,"REFERENCE":rEFER};
+apiInstance.updateContact(identifier, updateContact).then(async function(data) {
+  console.log('contact Updated.'+ JSON.stringify(data));
+  await importToList();
+}, function(error) {
+  console.error(error);
+});
+}
+export function createContact(){
+const SibApiV3Sdk = require('sib-api-v3-sdk');
+let defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = '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';
+let apiInstance = new SibApiV3Sdk.ContactsApi();
+let createContact = new SibApiV3Sdk.CreateContact();
+createContact.email = eMAIL
+createContact.attributes = {'EMAIL':eMAIL,'FULLNAME':nAME,'SALUTATION':sALUTION,'COMPANY':cOMPANY,'PHONE':mOBILE,'SECTORS':sECTERS,'MARKETING':mARKETING,'COUNTRY':cOUNTRY,'TYPE':tYPE,"FIRSTNAME":fIRST,"LASTNAME":lAST,"REFERENCE":rEFER};
+apiInstance.createContact(createContact).then(async function(data) {
+  console.log('Contact Created: ' + JSON.stringify(data))
+ await importToList();
+}, function(error) {
+  console.error(error);
+});
+}
+export function importToList(){
+  const SibApiV3Sdk = require('sib-api-v3-sdk');
+let defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = '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';
+let apiInstance = new SibApiV3Sdk.ContactsApi();
+let listId = 81;
+let contactEmails = new SibApiV3Sdk.AddContactToList();
+contactEmails.emails = [eMAIL];
+apiInstance.addContactToList(listId, contactEmails).then(function(data) {
+  console.log('API called successfully. Returned data: ' + JSON.stringify(data));
+}, function(error) {
+  console.error(error);
+});
+}
