@@ -1,0 +1,16 @@
+let array = []
+$w.onReady(async function () {
+    for (let i = 1; i <= 10; i++) {
+        $w('#d').onChange(async () => {
+            await validation(i)
+        });
+    }
+});
+export function validation(i) {
+    if (array[i] && array[i].length > 0) {
+        array[i] = $w('#d').selectedIndices.filter(val => !array[i].includes(val));
+    } else {
+        array[i] = $w('#d').selectedIndices
+    }
+    $w('#d').selectedIndices = array[i]
+}
