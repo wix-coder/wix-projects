@@ -1,0 +1,25 @@
+$w.onReady(function () {
+const startFromDays = 4;
+const endAtMonths = 9;
+const today = new Date();
+let startDate = new Date(today);
+startDate.setDate(startDate.getDate() + 14);
+let endDate = new Date(today);
+endDate.setMonth(endDate.getMonth() + 9);
+$w.onReady(function () {
+    $w("#datePicker").minDate = startDate;
+    $w("#datePicker").maxDate = endDate;
+});
+});$w.onReady(function () {
+const startFromDays = 4;
+const endAtMonths = 9;
+const today = new Date();
+let startDate = new Date(today);
+startDate.setDate(startDate.getDate() + 14);
+let endDate = new Date(today);
+endDate.setMonth(endDate.getMonth() + 9);
+$w.onReady(function () {
+    $w("#datePicker").minDate = startDate;
+    $w("#datePicker").maxDate = endDate;
+});
+});
