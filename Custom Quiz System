@@ -1,0 +1,39 @@
+back-end
+import wixData from 'wix-data';
+export async function zeroorder(){
+ let ff=await wixData.query("quiz").find()
+ if(ff.items.length>0)
+ return ff.items
+}
+front-end
+import { zeroorder } from "backend/younis.jsw"
+let cct;
+$w.onReady(async function () {
+    await goodbye();
+});
+async function goodbye() {
+    cct = await zeroorder()
+    $w("#repeater1").data = cct
+    $w("#repeater1").onItemReady(($w, itemData) => {
+        $w('#questions').text = itemData.question
+        let array = []
+        itemData.answer.forEach((results) => {
+            array.push({ 'label': results, 'value': results })
+            $w("#radioGroup1").options = array
+        })
+    })
+}
+export async function button1_click(event) {
+    await checkit()
+}
+let score = 0
+let total;
+export function checkit() {
+    $w('#repeater1').forEachItem(($item, itemData) => {
+        total = $item('#radioGroup1').value
+        if (total === itemData.correctanswer)
+            score = score + 1
+    })
+    $w("#scores").text = String('You have got' + ' ' + score + '' + '/20')
+    $w("#scores").expand()
+}
