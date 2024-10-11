@@ -1,0 +1,23 @@
+export function button1_click(event,$w) {  
+  let randomArray =[];
+let itemObj = $w("#dataset1").getCurrentItem();
+let allProducts = itemObj.products;
+let length = allProducts.length;
+let arrayID = [];
+for(let i=0; i<100 ; i++){
+arrayID.push(randomString(36));
+}
+for (let i=0 ; i<length; i++){
+randomArray.push({item:allProducts[i],_id:arrayID[i]})
+}
+$w("#repeater3").data=[];
+$w("#repeater3").data = randomArray;
+$w("#repeater3").scrollTo();
+}
+function randomString(len) {
+    var p = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-abcdefghijklmnopqrstuvwxyz0123456789";
+    return [...Array(len)].reduce(a=>a+p[~~(Math.random()*p.length)],'');
+}
+export function repeater3_itemReady($w,itemData) {
+ $w("#dn").text = itemData.item
+}
