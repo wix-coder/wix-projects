@@ -1,0 +1,14 @@
+import wixData from 'wix-data';
+let data
+$w.onReady(async function () {
+    await wixData.query('dropDown').find().then((result) => {
+        data = result.items
+        let data2 = map(data)
+        $w('#dropdown1').options = data2
+    });
+    function map(mapping) {
+        return mapping.map(result => {
+            return { label: result.name, value: result.name }
+        })
+    }
+})
