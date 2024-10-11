@@ -1,0 +1,33 @@
+Back-end
+import { getSecret } from 'wix-secrets-backend';
+import twilio from 'twilio';
+export async function sendMessage(toPhone, message) {
+    const fromPhone = "+12056604247"
+    const accountSID = "AC19b5f00a067fc9f2b3c73860ffc45f35"
+    const authToken = "6cb7245c28fd4f438cbfee07d20b438d"
+    const client = twilio(accountSID, authToken);
+    try {
+        await client.messages.create({
+            body: message,
+            from: fromPhone,
+            to: toPhone
+        });
+    } catch (error) {
+        throw 'Failed to send SMS';
+    }
+}
+Front-end
+import { sendMessage } from 'backend/twilioService';
+$w.onReady(function () {
+    $w('#sendButton').onClick(async() => {
+            const toPhone = $w('#toPhoneInput').value;
+            const message = $w('#messageInput').value;
+            $w('#successMessage').hide();
+            $w('#errorMessage').hide();
+            await sendMessage(toPhone, message).then(() => {
+                $w('#successMessage').show();
+            }).catch(() => {
+                $w('#errorMessage').show();
+            })
+    });
+});
