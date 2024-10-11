@@ -1,0 +1,38 @@
+Front-end
+import {SendEmail} from 'backend/triggered.jsw'
+import { contacts } from 'wix-crm';
+$w.onReady(function () { 
+});
+export async function send_click(event) {
+ let name =$w("#name").value
+ let email=$w("#email").value
+const contactInfo = {
+  emails: [{
+   email:email
+  }
+  ],
+};
+return contacts.appendOrCreateContact(contactInfo)
+  .then(async(resolvedContact) => {
+let id=resolvedContact.contactId;
+console.log(id)
+await SendEmail(name , email , id);
+  }).then(()=>{
+ $w("#success").show()
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+}
+back-end
+import {triggeredEmails} from 'wix-crm-backend';
+export async function SendEmail(name , email , id) {
+ await triggeredEmails.emailContact('mail',id , {
+  variables: {
+    name:name ,
+    email:email
+  }
+}).then(()=>{
+    console.log("Sent")
+})
+}
