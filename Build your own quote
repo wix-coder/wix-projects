@@ -1,0 +1,229 @@
+import { contacts } from 'wix-crm';
+import {local} from 'wix-storage'
+let state=0;
+//import {SendEmail} from 'backend/triggeredemail.jsw'
+import wixWindow from 'wix-window';
+let rad2
+let rad
+let rad3;
+let parray =[];
+let plan = 0;
+$w.onReady(function () {
+});
+export function radioGroup1_change(event) {
+  rad = $w('#radioGroup1').value
+  $w('#button14').enable()
+ console.log(rad)
+}
+export function button14_click(event) {
+ $w('#EmptyFullStateBox').changeState("state1");
+ $w('#1st').text=rad
+ $w('#1st').expand()
+ $w('#edit1').expand()
+}
+export function radioGroup2_change(event) {
+  rad2 = $w('#radioGroup2').value
+   $w('#button26').enable()
+}
+export function radioGroup3_change(event) {
+ rad3 = $w('#radioGroup3').value
+  $w('#button24').enable();
+if(rad3=='Smart Security System only ($39.99/month)'){
+$w("#text140").text = "Smart Security System only"
+$w("#planp").text = "$39.99";
+plan = 39.99;
+}
+else if(rad3=='Smart Security System + Automation ($44.99/month)'){
+$w("#text140").text = "Smart Security system and Automation"
+$w("#planp").text = "$44.99";
+plan = 44.99;
+}
+else if(rad3=='Smart Security System + Automation + Video Service ($54.99/month)'){
+$w("#text140").text = "Automation and WiFi security cameras"
+$w("#planp").text = "$54.99";
+plan = 54.99;
+}
+else{
+plan = 0; 
+}
+}
+export function button20_click(event) {
+$w('#EmptyFullStateBox').changeState("state4");
+state=1;
+}
+export function button21_click(event) {
+ $w('#EmptyFullStateBox').changeState("state4");
+}
+export function button16_click(event) {
+$w('#EmptyFullStateBox').changeState("Full");
+}
+export function button18_click(event) {
+ $w('#EmptyFullStateBox').changeState("state1");
+}
+export function edit1_click(event) {
+ $w('#EmptyFullStateBox').changeState("Full");
+$w('#1st').collapse()
+ $w('#edit1').collapse()
+}
+export function edit2_click(event) {
+ $w('#EmptyFullStateBox').changeState("state1");
+ $w('#2nd').collapse()
+ $w('#edit2').collapse()
+}
+export function edit3_click(event) {
+ $w('#EmptyFullStateBox').changeState("state2");
+ $w('#3rd').collapse()
+ $w('#edit3').collapse()
+}
+export function button24_click(event) {
+ if($w('#radioGroup3').value=='Hard wired Security Cameras only'||$w('#radioGroup3').value=='I already have a security system installed and just need service'){
+ $w('#EmptyFullStateBox').changeState("state5")
+ $w('#3rd').text=rad3
+ $w('#3rd').expand()
+ $w('#edit3').expand()}
+ else{
+ $w('#EmptyFullStateBox').changeState("state6");
+ $w('#3rd').text=rad3
+ $w('#3rd').expand()
+ $w('#edit3').expand()
+ }
+}
+export function button25_click(event) {
+ $w('#EmptyFullStateBox').changeState("state4");
+}
+export async function button26_click(event) {
+if($w("#radioGroup2").value=='Over 4000 square feet'){
+let data = await local.getItem('data')
+if(data=='yes'){
+$w('#EmptyFullStateBox').changeState("state5");
+$w('#2nd').text=rad2
+$w('#2nd').expand()
+$w('#edit2').expand()
+}
+else{
+wixWindow.openLightbox("verify");
+}}
+else{
+$w('#EmptyFullStateBox').changeState("state2");
+$w('#2nd').text=rad2
+}
+}
+export function button27_click(event) {
+ if(state==1){
+     $w('#EmptyFullStateBox').changeState("state5");
+  state=0;
+ }
+ else{
+    $w('#EmptyFullStateBox').changeState("state3");
+ }
+}
+export function button29_click(event) {
+$w('#EmptyFullStateBox').changeState("state6");
+}
+export function button28_click(event) {
+ //let pprice=$w('#1stprice').text
+ $w('#EmptyFullStateBox').changeState("state4");
+     let newarray = []
+      for (let i in parray) {
+        if (parray[i]) {
+              newarray.push(parray[i])
+         }
+      }
+   let total=newarray
+      console.log(total, 'removed undefined')
+let initialPrice=0;
+let products='';
+for (let x in newarray){
+  initialPrice = initialPrice+newarray[x].price;
+  products = products+","+" "+newarray[x].title;
+}
+let product = products.substring(2)
+console.log(product,"products");
+let formates = (initialPrice+plan).toFixed(2);
+$w('#total').text='$'+formates.toString();
+$w('#total').expand();
+$w('#edit4').expand()
+$w('#text138').expand()
+$w("#text137").text = product;
+$w("#text137").expand();
+$w("#text136").scrollTo();
+}
+export function repeater1_mouseIn(event) {
+  $w("#button28").expand();
+     $w("#button29").expand();
+}
+export function repeater1_itemReady($item,data,index) {
+ $item('#plus').onClick(()=>{
+ let num = Number($item('#price').value);
+ num+=1;
+ console.log(num,"num")
+ $item('#price').value=num;
+ let test = data.price
+           parray[index] = {title :data.productname,price:test*num};
+    console.log(parray,"<<check",test,"<<price")
+ })
+    $item('#minus').onClick(()=>{
+ let num = Number($item('#price').value);
+ num-=1;
+ $item('#price').value=num;
+           parray[index] = {title :data.productname,price:data.price*num};
+   console.log(parray)
+  })
+}
+export function edit4_click(event) {
+ $w('#text138').collapse()
+ //$w('#edit5').collapse()
+ $w('#total').collapse()
+ $w('#text137').collapse()
+ $w('#edit4').collapse()
+$w('#EmptyFullStateBox').changeState("state3");
+}
+export function button13_click(event) {
+ $w("#button13").label = 'Please wait...'
+ let name=$w('#input1').value;
+  let email=$w('#input7').value;
+  let address=$w('#input5').value;
+  let phone=$w('#input6').value;
+      let home=$w('#1st').text;
+  let size=$w('#2nd').text;
+  let totalprice=$w('#total').text;
+   let price=$w('#3rd').text;
+ let products =$w('#text137').text;
+  const contactInfo = {
+    emails: [
+      {
+        email: "info@secureprodfw.com",
+      },
+    ],
+  };
+  return contacts.appendOrCreateContact(contactInfo)
+    .then(async(resolvedContact) => {
+     let id=await resolvedContact.contactId
+   await SendEmail(name,size,email,price,products,home,totalprice,address,phone,id);
+    }).then(()=>{
+ $w("#EmptyFullStateBox").collapse();
+ $w("#success").expand();
+ local.removeItem("data");
+ })
+    .catch((error) => {
+      console.error(error);
+    });
+}
+export function text134_mouseIn(event,$w) {
+$w("#box7").expand();
+}
+export function text134_mouseOut(event,$w) {
+$w("#box7").collapse();
+}
+export function text134_click(event,$w) {
+$w("#box7").expand(); 
+}
+export function image101_click(event,$w) {
+$w("#box7").collapse();
+}
+export function button30_click(event) {
+ $w('#EmptyFullStateBox').changeState("state3");
+}
+export function button31_click(event) {
+ $w('#EmptyFullStateBox').changeState("state2");
+}
