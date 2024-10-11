@@ -1,0 +1,34 @@
+Front-end
+import { stripePayment } from 'backend/stripe.jsw'
+import wixWindow from 'wix-window';
+import wixLocation from 'wix-location';
+$w.onReady(function () {
+    let browser=wixWindow.browserLocale
+    console.log(browser   
+)
+});
+export async function pay_click(event) {
+    let boti = await stripePayment($w('#name').value, Number($w('#price').value))
+    wixLocation.to(boti)
+}
+Back-end
+const Stripe = require('stripe');
+const stripe = Stripe('sk_test_51JXTaTJEJUpZ9ASDXB09oWnTBt023UnpCQcKf5dbp6UtCe2zRLUMNYoaW0T1LaRjtztfecu4JfG5aeyMwoo5VUIB00DTosARMQ');
+export async function stripePayment(name, payment) {
+    const session = await stripe.checkout.sessions.create({
+        line_items: [{
+            price_data: {
+                currency: 'usd',
+                product_data: {
+                    name: name,
+                },
+                unit_amount: payment * 100,
+            },
+            quantity: 1,
+        }, ],
+        mode: 'payment',
+         success_url: `https://sarrubacha.wixsite.com/velo-tasks/success?name=${name}&price=${payment}`,
+        cancel_url: 'https://sarrubacha.wixsite.com/velo-tasks/failure',
+    });
+    return session.url
+}
