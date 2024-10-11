@@ -1,0 +1,14 @@
+$w.onReady(function () {
+});
+export function convert_click(event) {
+ let currencyfrom = $w('#from').value
+    let currencyto = $w('#too').value
+    let amount= Number($w('#amount').value)
+    if (currencyfrom==='USD' && currencyto==='PKR'){
+        $w('#results').text = 'PKR' + ' '+ (amount*204.59).toFixed(2).toString()
+    }
+    if (currencyfrom==='PKR' && currencyto==='USD'){
+        $w('#results').text = '$' + (amount/204.59).toFixed(2).toString()
+    }
+ $w('#results').expand();
+}
