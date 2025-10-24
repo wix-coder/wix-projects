@@ -1,0 +1,117 @@
+~~~~~~~~Auto charge with stripe ~~~~~~~
+const stripe = require('stripe')(test); // Use test key for development
+import { fetch } from 'wix-fetch';
+import { getSecret } from 'wix-secrets-backend';
+import wixData from 'wix-data';
+import { getCurrentMemberSeller } from "backend/sellers.jsw";
+
+export async function create_session(price, name, quantity, itemId, interval, interval_count) {
+    try {
+        const session = await stripe.checkout.sessions.create({
+            success_url: `https://pietrocolajuan.wixsite.com/shine-hub-1/_functions/data?session_id={CHECKOUT_SESSION_ID}&itemId=${itemId}`,
+            cancel_url: 'https://pietrocolajuan.wixsite.com/shine-hub-1/cancel',
+            // Always create a customer for the subscription
+            line_items: [
+                { price: await create_price(price, name, interval, interval_count), quantity: quantity },
+            ],
+            mode: 'subscription', // Required for recurring payments
+            allow_promotion_codes: true, // Allow promotion codes during checkout
+
+        });
+
+        return session; // Return the session object
+    } catch (error) {
+        console.error('Error creating session:', error);
+        throw new Error('Failed to create subscription session');
+    }
+}
+export async function create_session1(price, name, quantity, itemId, email) {
+    const session = await stripe.checkout.sessions.create({
+        success_url: `https://pietrocolajuan.wixsite.com/shine-hub-1/_functions/data?session_id={CHECKOUT_SESSION_ID}&itemId=${itemId}`,
+        cancel_url: 'https://pietrocolajuan.wixsite.com/shine-hub-1/cancel',
+        payment_intent_data: {
+            setup_future_usage: 'off_session', // Enables the save card checkbox
+        },
+        customer_creation: 'always',
+        line_items: [
+            { price: await create_price(price, name), quantity: quantity },
+        ],
+        mode: 'payment',
+        allow_promotion_codes: true,
+        customer_email: email,
+    });
+    return session;
+}
+export async function create_session2(price, name, quantity, itemId, interval, interval_count) {
+    try {
+        const session = await stripe.checkout.sessions.create({
+            success_url: `https://pietrocolajuan.wixsite.com/shine-hub-1/_functions/restart?session_id={CHECKOUT_SESSION_ID}&itemId=${itemId}`,
+            cancel_url: 'https://pietrocolajuan.wixsite.com/shine-hub-1/cancel',
+            // Always create a customer for the subscription
+            line_items: [
+                { price: await create_price(price, name, interval, interval_count), quantity: quantity },
+            ],
+            mode: 'subscription', // Required for recurring payments
+            allow_promotion_codes: true, // Allow promotion codes during checkout
+
+        });
+
+        return session; // Return the session object
+    } catch (error) {
+        console.error('Error creating session:', error);
+        throw new Error('Failed to create subscription session');
+    }
+}
+
+export async function create_session3(price, name, quantity, itemId) {
+    const session = await stripe.checkout.sessions.create({
+        success_url: `https://pietrocolajuan.wixsite.com/shine-hub-1/_functions/buy?session_id={CHECKOUT_SESSION_ID}&itemId=${itemId}`,
+        cancel_url: 'https://pietrocolajuan.wixsite.com/shine-hub-1/cancel',
+        payment_intent_data: {
+            setup_future_usage: 'off_session', // Enables the save card checkbox
+        },
+        customer_creation: 'always',
+        line_items: [
+            { price: await create_price(price, name), quantity: quantity },
+        ],
+        mode: 'payment',
+        allow_promotion_codes: true,
+
+    });
+    return session;
+}
+export async function deletepayment(id) {
+
+    const subscription = await stripe.subscriptions.cancel(
+        id
+    );
+    return subscription
+}
+export async function create_price(price1, name, interval1, interval_count1) {
+    try {
+        const price = await stripe.prices.create({
+            unit_amount: price1 * 100, // Convert price to cents (e.g., $10 becomes 1000)
+            currency: 'aud', // Use AUD for the subscription currency
+            recurring: {
+                // interval: 'week',
+                // interval_count: 2,
+                interval: interval1,
+                interval_count: interval_count1,
+                // Set the billing interval to weekly
+            },
+            product: await create_product(name), // Attach the price to a dynamically created product
+        });
+
+        return price.id; // Return the price ID
+    } catch (error) {
+        console.error('Error creating price:', error);
+        throw new Error('Failed to create price');
+    }
+}
+
+export async function create_product(name) {
+    const product = await stripe.products.create({
+        name: name
+    });
+    return product.id
+}
