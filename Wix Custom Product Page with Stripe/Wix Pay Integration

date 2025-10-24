@@ -1,0 +1,351 @@
+=================================frontend==================
+
+// Import dependencies
+import { formFactor } from "wix-window-frontend";
+import { cart } from 'wix-stores';
+import wixPay from 'wix-pay';
+import { createMyPayment, createOrder } from "backend/payment.jsw";
+
+// Constants
+let boxSize = 0; // Default box size
+const weightPerBox = 17.82; // kg
+let pricePerM2 = 0; // Default price per m²
+let quantity = 0; // Initial quantity
+let totalWeight = 0,
+    totalPrice = 0;
+let selectedDescription = "";
+let SQMassain = [],
+    assainSize = [];
+let product;
+
+$w.onReady(async () => {
+    try {
+        // Fetch product details
+        product = await $w("#productPage1").getProduct();
+        if (!product) {
+            console.error("Product not found.");
+            return;
+        }
+
+        // Initialize values
+        pricePerM2 = product.price || 0;
+        $w('#text69').text = `$${pricePerM2.toFixed(2)}`;
+
+        initializeDropdowns(product);
+        initializeRepeater(product.productOptions.Colour.choices);
+        setupAddToCart(product);
+        setupQuantityAdjustments(); // Ensure proper placement
+        initializeWastageOptions();
+        updateValues();
+    } catch (error) {
+        console.error("Error initializing product:", error);
+    }
+});
+
+// Initialize dropdowns
+function initializeDropdowns(product) {
+    SQMassain = product.productOptions["SQM PER BOX"].choices.map(choice => ({
+        label: choice.description,
+        value: parseFloat(choice.value) || 0
+    }));
+
+    assainSize = product.productOptions.Size.choices.map(choice => ({
+        label: choice.description,
+        value: choice.value
+    }));
+
+    boxSize = SQMassain[0]?.value || 0;
+
+    $w("#dropdown1").options = SQMassain;
+    $w("#dropdown2").options = assainSize;
+
+    $w('#dropdown1').onChange(() => handleDropdownChange($w('#dropdown1')));
+}
+
+// Handle dropdown change
+function handleDropdownChange(dropdown) {
+    const newValue = parseFloat(dropdown.value);
+    if (isNaN(newValue) || newValue <= 0) {
+        console.error("Invalid value selected.");
+        return;
+    }
+
+    boxSize = newValue;
+    $w('#text58').text = `${boxSize} m²`;
+    updateValues();
+}
+
+// Initialize repeater
+function initializeRepeater(colorChoices) {
+    $w('#repeater9').data = colorChoices.map((choice, index) => ({
+        ...choice,
+        _id: `color-${index}`
+    }));
+
+    $w('#repeater9').onItemReady(($item, itemData) => {
+        $item("#button9").style.backgroundColor = itemData.value;
+        $item("#button9").label = itemData.description;
+
+        $item("#button9").onClick(() => handleColorSelection($item, itemData));
+    });
+}
+
+// Handle color selection
+function handleColorSelection($item, itemData) {
+    $w('#repeater9').forEachItem(($innerItem) => {
+        $innerItem('#box4').style.borderColor = "#FFFFFF";
+        $innerItem('#box4').style.borderWidth = "1px";
+    });
+
+    $item('#box4').style.borderColor = "#000000";
+    $item('#box4').style.borderWidth = "2px";
+    selectedDescription = itemData.description;
+}
+
+// Setup Add to Cart functionality
+function setupAddToCart(product) {
+    $w('#AddtoCartButton').onClick(async () => {
+        if (!validateInputs()) return;
+
+        const roundedBoxes = calculateBoxQty(quantity, boxSize);
+        totalPrice = roundedBoxes * pricePerM2;
+
+        const item = [{
+            name: product.name,
+            price: +removeDollarSigns($w('#text69').text),
+        }];
+        console.log(item);
+
+        try {
+            createMyPayment(item).then((payment) => {
+                wixPay.startPayment(payment.id).then(async (result) => {
+                    if (result.status === "Successful") {
+                        console.log("Payment successful", result);
+                    } else {
+                        await handlePaymentFailure(result, item);
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error("Error during payment process:", error);
+        }
+    });
+}
+
+// Handle payment failure
+async function handlePaymentFailure(result, item) {
+    if (result.status === "Cancelled" || result.status === "Failed") {
+        console.warn("Payment not completed:", result.status);
+
+        const { userInfo } = result;
+        const orderData = {
+            lineItems: item,
+            TotalPrice: parseFloat(item[0].price),
+            country: userInfo.country,
+            lname: userInfo.lastName,
+            fname: userInfo.firstName,
+            email: userInfo.email,
+            phone: userInfo.phone
+        };
+
+        try {
+            const orderResponse = await createOrder(orderData);
+            console.log("Order created successfully:", orderResponse);
+        } catch (error) {
+            console.error("Error creating order:", error);
+        }
+    }
+}
+
+// Remove dollar signs from text
+function removeDollarSigns(text) {
+    return text.replace(/\$/g, '');
+}
+
+// Validate user inputs
+function validateInputs() {
+    if (!$w('#dropdown1').value || !$w('#dropdown2').value || !selectedDescription || quantity <= 0) {
+        displayMessage("Please fill all fields correctly.", false);
+        return false;
+    }
+    return true;
+}
+
+function setupQuantityAdjustments() {
+    $w('#quantity').onChange(() => {
+        const quantityValue = parseFloat($w('#quantity').value) || 0;
+        if (quantityValue > 0) {
+            quantity = quantityValue;
+            const requiredBoxes = calculateBoxQty(quantity, boxSize);
+            $w('#requiredBoxes').text = `${requiredBoxes}`;
+            updateValues();
+        } else {
+            displayMessage("Please enter a valid quantity.", false);
+        }
+    });
+
+    // Adjustments for minus and plus buttons
+    $w('#minusButton').onClick(() => adjustQuantity(-0.1));
+    $w('#plusButton').onClick(() => adjustQuantity(0.1));
+}
+
+// Adjust quantity
+function adjustQuantity(delta) {
+    quantity = Math.max((quantity || 1.62) + delta, 0);
+    $w('#quantity').value = quantity.toFixed(2);
+    $w('#requiredBoxes').text = calculateBoxQty(quantity, boxSize).toString();
+    updateValues();
+}
+
+// Initialize wastage options
+function initializeWastageOptions() {
+    $w('#wastageRadioGroup').options = [
+        { label: "0%", value: "0" },
+        { label: "10%", value: "10" },
+        { label: "15%", value: "15" }
+    ];
+    $w('#wastageRadioGroup').onChange(updateValues);
+}
+
+function updateValues() {
+    const roundedBoxes = calculateBoxQty(quantity, boxSize); // Use updated logic
+    totalWeight = roundedBoxes * weightPerBox;
+    totalPrice = roundedBoxes * pricePerM2;
+
+    // Apply wastage percentage if any
+    const wastagePercentage = parseFloat($w('#wastageRadioGroup').value) || 0;
+    if (wastagePercentage > 0) {
+        totalPrice += totalPrice * (wastagePercentage / 100);
+    }
+
+    // Update the displayed values
+    $w('#totalWeight').text = `${totalWeight.toFixed(2)} kg`;
+    $w('#text69').text = `$${totalPrice.toFixed(2)}`;
+    $w('#requiredBoxes').text = `${roundedBoxes}`; // Show the correct box quantity
+}
+
+// Calculate box quantity
+function calculateBoxQty(totalSQM, sqmPerBox) {
+    if (totalSQM === 0 || sqmPerBox === 0) return 0;
+    const boxes = totalSQM / sqmPerBox;
+    return boxes % 1 < 0.55 ? Math.floor(boxes) : Math.ceil(boxes);
+}
+
+// Display messages to user
+function displayMessage(message, success) {
+    $w('#text70').text = message;
+    $w('#text70').style.color = success ? "#00AA00" : "#AA0000";
+    $w('#text70').show();
+    setTimeout(() => $w('#text70').hide(), 4000);
+}
+
+///////////////////////////////////////////addtocart.web.js////////////////////////////////////////
+
+import { Permissions, webMethod } from "wix-web-module";
+import { cart } from "wix-ecom-backend";
+
+export const myAddToCartFunction = webMethod(
+  Permissions.Anyone,
+  async (_id, options) => {
+    try {
+      const updatedCart = await cart.addToCart(_id, options);
+      console.log("Success! Updated cart:", updatedCart);
+      return updatedCart;
+    } catch (error) {
+      console.error(error);
+      // Handle the error
+    }
+  },
+);
+
+////////////////////////////////////////payment.jsw////////////////////////////////
+
+/**************************
+ * Backend code - pay.jsw *
+ **************************/
+
+import wixPayBackend from 'wix-pay-backend';
+
+export function createMyPayment(item) {
+    return wixPayBackend.createPayment({
+        items: [{
+            name: item[0].name,
+            price: item[0].price,
+            // quantity: item.lineItems[0].quantity
+        }],
+        amount: item[0].price,
+    });
+}
+
+/*****************************
+ * Backend Code - orders.jsw *
+ *****************************/
+
+import wixStoresBackend from "wix-stores-backend";
+
+export function createOrder(lineItems, TotalPrice, con, lname, fname, email, phone, city, formatedaddress, zipCode, subDivision) {
+
+    const minimumOrder = {
+        lineItems: lineItems,
+        totals: {
+            subtotal: TotalPrice,
+            total: TotalPrice,
+        },
+        channelInfo: {
+            type: "WEB",
+        },
+        paymentStatus: "PAID",
+        shippingInfo: {
+            shipmentDetails: {
+                address: {
+                    city:city ,
+                    country: con,
+                    addressLine:formatedaddress,
+                    postalCode: zipCode,
+                    subdivision: subDivision,
+                },
+            },
+        },
+        billingInfo: {
+            address: {
+                city:"not assaind",
+                country: con,
+                addressLine:formatedaddress,
+                postalCode:zipCode,
+                subdivision: subDivision,
+            },
+            lastName: lname,
+            firstName: fname,
+            email: email,
+            phone: phone||"",
+
+        },
+    };
+    return wixStoresBackend.createOrder(minimumOrder).then((res) => {
+        console.log(3);
+        return res
+    }).catch((e) => {
+        console.log(32323);
+        return e
+    });
+}
+
+////////////////////////////////////products.js////////////////////////////////////
+
+import { Permissions, webMethod } from "wix-web-module";
+import { cart } from "wix-ecom-backend";
+
+export const myAddToCartFunction = webMethod(
+  Permissions.Anyone,
+  async (_id, options) => {
+    try {
+      const updatedCart = await cart.addToCart(_id, options);
+      console.log("Success! Updated cart:", updatedCart);
+      return updatedCart;
+    } catch (error) {
+      console.error(error);
+      // Handle the error
+    }
+  },
+);
