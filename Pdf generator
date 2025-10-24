@@ -1,0 +1,567 @@
+//PDF Generator//
+
+//foundposter.web.js//
+
+import { webMethod, Permissions } from "wix-web-module";
+import { mediaManager } from "wix-media-backend";
+import { jsPDF } from "jspdf";
+import { Buffer } from "buffer";
+import axios from "axios";
+
+export const generatePoster = webMethod(Permissions.Anyone, async (formData) => {
+  try {
+    const data = formData?.formData || formData || {};
+    const {
+      name = "PET NAME MISSING",
+      breed = "Unknown",
+      regDetails = "Not provided",
+      features = "None specified",
+      lastSeenCity = "Unknown",
+      lastSeenArea = "Unknown",
+      landmark = "Not specified",
+      phoneNumber = "000-000-0000",
+      imageUrl
+    } = data;
+
+    const docWidth = 420;
+    const docHeight = 595;
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "px",
+      format: [docWidth, docHeight],
+      hotfixes: ["px_scaling"]
+    });
+
+    // === 1) RED HEADER ===
+    const headerHeight = 80;
+    doc.setFillColor(220, 20, 60);
+    doc.rect(0, 0, docWidth, headerHeight, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(40);
+    doc.setTextColor(255, 255, 255);
+    doc.text("FOUND!", docWidth / 2, 50, { align: "center" });
+
+    // === 2) PET NAME ===
+    doc.setFontSize(28);
+    doc.setTextColor(220, 20, 60);
+    doc.text(name.toUpperCase(), 30, 120);
+
+    // === 3) IMAGE BOX ===
+    const imgBoxX = 30;
+    const imgBoxY = 150;
+    const imgBoxW = 160;
+    const imgBoxH = 200;
+
+    doc.setLineWidth(2);
+    doc.setDrawColor(0, 0, 0);
+    doc.rect(imgBoxX, imgBoxY, imgBoxW, imgBoxH, "S");
+
+    const addImagePlaceholder = () => {
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("IMAGE NOT AVAILABLE", imgBoxX + 15, imgBoxY + imgBoxH / 2, {
+        align: "left"
+      });
+    };
+
+    if (imageUrl) {
+      try {
+        const response = await axios.get(imageUrl, {
+          responseType: "arraybuffer",
+          headers: { "Content-Type": "image/*" }
+        });
+        const base64String = Buffer.from(response.data).toString("base64");
+        const imgData = `data:image/jpeg;base64,${base64String}`;
+        doc.addImage(imgData, "JPEG", imgBoxX + 2, imgBoxY + 2, imgBoxW - 4, imgBoxH - 4);
+      } catch (e) {
+        console.error("Image fetch failed:", e.message);
+        addImagePlaceholder();
+      }
+    } else {
+      addImagePlaceholder();
+    }
+
+    // === 4) PET INFO ===
+    let infoX = imgBoxX + imgBoxW + 20;
+    let infoY = 160;
+    const lineHeight = 20;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+
+    const drawInfoLine = (label, value) => {
+      const text = `${label}: ${value}`;
+      doc.text(text, infoX, infoY);
+      infoY += 2;
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.line(infoX, infoY, infoX + 180, infoY);
+      infoY += lineHeight - 2;
+    };
+
+    drawInfoLine("Type", "Dog");
+    drawInfoLine("Breed", breed);
+    drawInfoLine("Reg. Details", regDetails);
+
+    const featuresLabel = `Distinctive Features: ${features}`;
+    const featuresLines = doc.splitTextToSize(featuresLabel, 180);
+    doc.text(featuresLines, infoX, infoY);
+    infoY += featuresLines.length * lineHeight;
+    doc.line(infoX, infoY - 5, infoX + 180, infoY - 5);
+    infoY += 5;
+
+    // === 5) FOUND WHERE ===
+    doc.setFillColor(220, 20, 60);
+    const foundWhereBarHeight = 20;
+    doc.rect(infoX, infoY, 180, foundWhereBarHeight, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text("FOUND WHERE", infoX + 10, infoY + 15);
+    infoY += (foundWhereBarHeight + 20);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+
+    drawInfoLine("City", lastSeenCity);
+    drawInfoLine("Area", lastSeenArea);
+
+    const landmarkLabel = `Landmark: ${landmark}`;
+    const landmarkLines = doc.splitTextToSize(landmarkLabel, 180);
+    doc.text(landmarkLines, infoX, infoY);
+    infoY += landmarkLines.length * lineHeight;
+    doc.line(infoX, infoY - 5, infoX + 180, infoY - 5);
+    infoY += 5;
+
+    // === 6) FOOTER ===
+    const footerHeight = 70;
+    const footerY = docHeight - footerHeight;
+
+    doc.setFillColor(220, 20, 60);
+    doc.rect(0, footerY, docWidth, footerHeight, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+
+    doc.setFontSize(16);
+    const callText = "CALL WITH ANY INFORMATION";
+    const callTextWidth = doc.getTextWidth(callText);
+    doc.text(callText, (docWidth / 2) - (callTextWidth / 2), footerY + 25);
+
+    doc.setFontSize(22);
+    const cleanPhone = phoneNumber.replace(/\s+/g, " ").trim();
+    const phoneWidth = doc.getTextWidth(cleanPhone);
+    doc.text(cleanPhone, (docWidth / 2) - (phoneWidth / 2), footerY + 50);
+
+    // === 7) UPLOAD ===
+    const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
+    const uploadedFile = await mediaManager.upload(
+      "Lost-Dogs",
+      pdfBuffer,
+      `${name}-poster-${Date.now()}.pdf`,
+      {
+        mediaOptions: { mimeType: "application/pdf" },
+        metadataOptions: { isPrivate: false }
+      }
+    );
+
+    const downloadUrl = await mediaManager.getDownloadUrl(uploadedFile.fileUrl, 86400);
+
+    return {
+      success: true,
+      downloadUrl,
+      fileUrl: uploadedFile.fileUrl
+    };
+  } catch (error) {
+    console.error("Poster generation failed:", error.message);
+    return {
+      success: false,
+      error: error.message || "Failed to generate poster. Check input data and try again."
+    };
+  }
+});
+
+//pdf.web.js//
+import { webMethod, Permissions } from "wix-web-module";
+import { mediaManager } from "wix-media-backend";
+import { fetch } from "wix-fetch";
+import jsPDF from "jspdf";
+
+function toBase64(binary) {
+  return Buffer.from(binary, "binary").toString("base64");
+}
+
+export const generatePoster = webMethod(
+  Permissions.Anyone,
+  async (formData) => {
+    try {
+      const {
+        ownerName,
+        phone,
+        petName,
+        petType,
+        breed,
+        comments,
+        registrationDetails,
+        landmark,
+        city,
+        state,
+        petImages
+      } = formData;
+
+      const doc = new jsPDF();
+      doc.setFont("helvetica", "bold");
+      doc.text(`Lost ${petType}: ${petName}`, 20, 20);
+      doc.text(`Breed: ${breed}`, 20, 30);
+      doc.text(`Distinct Features: ${comments}`, 20, 40);
+      doc.text(`Registration No: ${registrationDetails}`, 20, 50);
+      doc.text(`Last Seen: ${landmark}, ${city}, ${state}`, 20, 60);
+      doc.text(`Owner: ${ownerName}`, 20, 70);
+      doc.text(`Contact: ${phone}`, 20, 80);
+
+      // Add pet image (if available)
+      if (petImages?.[0]?.url) {
+        const imageUrl = petImages[0].url;
+        try {
+          const response = await fetch(imageUrl, {
+            method: "get",
+            headers: {
+              "Content-Type": "application/octet-stream"
+            }
+          });
+
+          if (response.ok) {
+            const binaryData = await response.text(); // Gets binary as text
+            const base64Image = toBase64(binaryData);
+
+            doc.addImage(
+              `data:image/jpeg;base64,${base64Image}`,
+              "JPEG",
+              20,
+              90,
+              150,
+              100
+            );
+          } else {
+            console.warn("Failed to fetch image:", imageUrl);
+          }
+        } catch (err) {
+          console.warn("Image fetch error:", err);
+        }
+      }
+
+      const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
+
+      const uploadedFile = await mediaManager.upload(
+        "Lost-Dogs",
+        pdfBuffer,
+        `${petName}-poster-${Date.now()}.pdf`,
+        {
+          mediaOptions: {
+            mimeType: "application/pdf",
+            mediaType: "document"
+          },
+          metadataOptions: {
+            isPrivate: false,
+            isVisitorUpload: true
+          }
+        }
+      );
+
+      const downloadUrl = await mediaManager.getDownloadUrl(
+        uploadedFile.fileUrl,
+        86400,
+        `${petName}-poster.pdf`
+      );
+
+      return {
+        success: true,
+        downloadUrl,
+        fileUrl: uploadedFile.fileUrl
+      };
+    } catch (error) {
+      console.error("Backend Error:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to generate poster"
+      };
+    }
+  }
+);
+
+//poster.web.js//
+import { webMethod, Permissions } from "wix-web-module";
+import { mediaManager } from "wix-media-backend";
+import { jsPDF } from "jspdf";
+import { Buffer } from "buffer";
+import axios from "axios";
+
+export const generatePoster = webMethod(Permissions.Anyone, async (formData) => {
+  try {
+    const data = formData?.formData || formData || {};
+    const {
+      name = "PET NAME MISSING",
+      breed = "Unknown",
+      regDetails = "Not provided",
+      features = "None specified",
+      lastSeenCity = "Unknown",
+      lastSeenArea = "Unknown",
+      landmark = "Not specified",
+      phoneNumber = "000-000-0000",
+      imageUrl
+    } = data;
+
+    // === Initialize PDF ===
+    const docWidth = 420;
+    const docHeight = 595;
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "px",
+      format: [docWidth, docHeight],
+      hotfixes: ["px_scaling"]
+    });
+
+    // ========== 1) LARGE RED HEADER ==========
+    const headerHeight = 80;
+    doc.setFillColor(220, 20, 60);
+    doc.rect(0, 0, docWidth, headerHeight, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(40);
+    doc.setTextColor(255, 255, 255);
+    doc.text("MISSING!", docWidth / 2, 50, { align: "center" });
+
+    // ========== 2) PET NAME ==========
+    doc.setFontSize(28);
+    doc.setTextColor(220, 20, 60);
+    doc.text(name.toUpperCase(), 30, 120);
+
+    // ========== 3) IMAGE BOX ==========
+    const imgBoxX = 30;
+    const imgBoxY = 150;
+    const imgBoxW = 160;
+    const imgBoxH = 200;
+
+    doc.setLineWidth(2);
+    doc.setDrawColor(0, 0, 0);
+    doc.rect(imgBoxX, imgBoxY, imgBoxW, imgBoxH, "S");
+
+    const addImagePlaceholder = () => {
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("IMAGE NOT AVAILABLE", imgBoxX + 15, imgBoxY + imgBoxH / 2, {
+        align: "left"
+      });
+    };
+
+    if (imageUrl) {
+      try {
+        const response = await axios.get(imageUrl, {
+          responseType: "arraybuffer",
+          headers: { "Content-Type": "image/*" }
+        });
+        const base64String = Buffer.from(response.data).toString("base64");
+        const imgData = `data:image/jpeg;base64,${base64String}`;
+        doc.addImage(imgData, "JPEG", imgBoxX + 2, imgBoxY + 2, imgBoxW - 4, imgBoxH - 4);
+      } catch (e) {
+        console.error("Image fetch failed:", e.message);
+        addImagePlaceholder();
+      }
+    } else {
+      addImagePlaceholder();
+    }
+
+    // ========== 4) PET INFO ==========
+    let infoX = imgBoxX + imgBoxW + 20;
+    let infoY = 160;
+    const lineHeight = 20;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+
+    const drawInfoLine = (label, value) => {
+      const text = `${label}: ${value}`;
+      doc.text(text, infoX, infoY);
+      infoY += 2;
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.line(infoX, infoY, infoX + 180, infoY);
+      infoY += lineHeight - 2;
+    };
+
+    drawInfoLine("Type", "Dog");
+    drawInfoLine("Breed", breed);
+    drawInfoLine("Reg. Details", regDetails);
+
+    // Distinctive Features (multi-line)
+    const featuresLabel = `Distinctive Features: ${features}`;
+    const featuresLines = doc.splitTextToSize(featuresLabel, 180);
+    doc.text(featuresLines, infoX, infoY);
+    infoY += featuresLines.length * lineHeight;
+    doc.line(infoX, infoY - 5, infoX + 180, infoY - 5);
+    infoY += 5;
+
+    // ========== 5) LAST SEEN ==========
+    doc.setFillColor(220, 20, 60);
+    const lastSeenBarHeight = 20;
+    doc.rect(infoX, infoY, 180, lastSeenBarHeight, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text("LAST SEEN", infoX + 10, infoY + 15);
+    infoY += (lastSeenBarHeight + 20); // extra spacing added
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+
+    drawInfoLine("City", lastSeenCity);
+    drawInfoLine("Area", lastSeenArea);
+
+    const landmarkLabel = `Landmark: ${landmark}`;
+    const landmarkLines = doc.splitTextToSize(landmarkLabel, 180);
+    doc.text(landmarkLines, infoX, infoY);
+    infoY += landmarkLines.length * lineHeight;
+    doc.line(infoX, infoY - 5, infoX + 180, infoY - 5);
+    infoY += 5;
+
+    // ========== 6) FOOTER ==========
+    const footerHeight = 70;
+    const footerY = docHeight - footerHeight;
+
+    doc.setFillColor(220, 20, 60);
+    doc.rect(0, footerY, docWidth, footerHeight, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+
+    doc.setFontSize(16);
+    const callText = "CALL WITH ANY INFORMATION";
+    const callTextWidth = doc.getTextWidth(callText);
+    doc.text(callText, (docWidth / 2) - (callTextWidth / 2), footerY + 25);
+
+    doc.setFontSize(22);
+    const cleanPhone = phoneNumber.replace(/\s+/g, " ").trim();
+    const phoneWidth = doc.getTextWidth(cleanPhone);
+    doc.text(cleanPhone, (docWidth / 2) - (phoneWidth / 2), footerY + 50);
+
+    // ========== 7) UPLOAD ==========
+    const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
+    const uploadedFile = await mediaManager.upload(
+      "Lost-Dogs",
+      pdfBuffer,
+      `${name}-poster-${Date.now()}.pdf`,
+      {
+        mediaOptions: { mimeType: "application/pdf" },
+        metadataOptions: { isPrivate: false }
+      }
+    );
+
+    const downloadUrl = await mediaManager.getDownloadUrl(uploadedFile.fileUrl, 86400);
+
+    return {
+      success: true,
+      downloadUrl,
+      fileUrl: uploadedFile.fileUrl
+    };
+  } catch (error) {
+    console.error("Poster generation failed:", error.message);
+    return {
+      success: false,
+      error: error.message || "Failed to generate poster. Check input data and try again."
+    };
+  }
+});
+
+//Frontend//
+import { generatePoster } from 'backend/poster.web';
+import wixData from 'wix-data';
+import wixLocationFrontend from 'wix-location-frontend';
+
+$w.onReady(function () {
+    const form = $w("#form3");
+
+    form.onSubmit(async (formValues) => {
+        try {
+            $w("#loading").show();
+            // ✅ All image URLs for CMS saving
+            const petImages = (formValues.file_upload_9447 || []).map(file => file.url);
+
+            // ✅ First image for poster generation
+            const firstImage = (formValues.file_upload_9447 && formValues.file_upload_9447.length > 0) ?
+                formValues.file_upload_9447[0].url :
+                null;
+
+            const submissionData = {
+                ownerName: `${formValues.first_name_2135} ${formValues.last_name_a8f9}`,
+                phone: formValues.phone_number,
+                petName: formValues.my_pet_responds_to,
+                petType: formValues.pet_type,
+                breed: formValues.breed,
+                comments: formValues.additional_comments,
+                registrationStatus: formValues.is_your_pet_registered_micro_chipped_or_tagged,
+                registrationDetails: formValues.if_yes_please_provide_the_registration_details_below,
+                landmark: formValues.landmark_if_any_2,
+                city: formValues.multi_line_address_a3b3?.city,
+                state: formValues.multi_line_address_a3b3?.subdivision,
+                images: petImages // For CMS
+            };
+
+            console.log("Lost Pet Submission:", submissionData);
+
+            // ✅ Prepare poster data with correct field names
+            const posterData = {
+                name: submissionData.petName,
+                breed: submissionData.breed,
+                regDetails: submissionData.registrationDetails,
+                features: submissionData.comments,
+                lastSeenCity: submissionData.city,
+                lastSeenArea: submissionData.landmark, // Adjust if your form has a specific field
+                landmark: submissionData.landmark,
+                phoneNumber: submissionData.phone,
+                imageUrl: firstImage
+            };
+
+            const response = await generatePoster(posterData);
+
+            if (response.success) {
+                $w("#loading").hide();
+                console.log("Poster Created:", response.downloadUrl);
+
+                // ✅ Ensure CMS field names match exactly (e.g., 'dogimages' lowercase)
+                const cmsData = {
+                    ownerName: submissionData.ownerName,
+                    phone: submissionData.phone,
+                    petName: submissionData.petName,
+                    petType: submissionData.petType,
+                    breed: submissionData.breed,
+                    distinctFeatures: submissionData.comments,
+                    registrationStatus: submissionData.registrationStatus,
+                    registrationDetails: submissionData.registrationDetails,
+                    landmark: submissionData.landmark,
+                    city: submissionData.city,
+                    state: submissionData.state,
+                    dogimages: submissionData.images, // Lowercase to match CMS field
+                    poster: response.file
+                };
+
+                await wixData.insert("LostPetData", cmsData);
+                console.log("Data saved to CMS:", cmsData);
+
+                await wixLocationFrontend.to(response.downloadUrl);
+            } else {
+                console.error("Poster generation failed:", response.error);
+            }
+
+            return form.submit();
+        } catch (error) {
+            console.error("Form submission error:", error);
+        }
+    });
+});
