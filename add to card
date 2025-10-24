@@ -1,0 +1,36 @@
+////addToCard///
+
+async function updateRepeater(data) {
+  if(data.length > 0){
+    $w("#weekrepeater").expand();
+    $w("#text62").collapse();
+    $w("#weekrepeater").data = data;
+    $w("#weekrepeater").onItemReady(($item, itemData) => {
+        $item("#text58").text = itemData.ribbon;
+        $item("#imageX14").src = itemData.mainMedia;
+        $item("#text57").text = itemData.name;
+        $item('#text63').text = "$" + itemData.price.toString();
+        $item("#addToCart").onClick(() => {
+            addToCart(itemData);
+        });
+    });
+  } else {
+    $w("#weekrepeater").collapse();
+    $w("#text62").expand();
+  }
+}
+
+function addToCart(item) {
+    const products = [{
+        productId: item._id,
+        quantity: 1
+    }];
+
+    cart.addProducts(products)
+        .then(() => {
+            cart.showMiniCart();
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+}
